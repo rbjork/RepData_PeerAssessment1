@@ -2,19 +2,93 @@
 
 
 ## Loading and preprocessing the data
-
-
+```{r}
+ filepath <- "./activity/activity.csv"
+ data <- read.csv(filepath)
+ dataHavingStepValues <- data[!is.na(data$steps),] # Remove rows with NA in steps
+```
 
 ## What is mean total number of steps taken per day?
+```{r}
+ dates <- unique(dataHavingStepValues$date)
+ numberOfDates <- length(dates)
+ computeAverage <- function(x){
+   sum(x)/numberOfDates
+ }
+ dailyStepTotals <- by(dataHavingStepValues$steps, dataHavingStepValues$date, computeAverage)
 
-
-
+```
+```{r fig.width=7, fig.height=6}
+ hist(dailyStepTotals,breaks=10)
+```
+```{r}
+  meanSteps <- mean(as.numeric(dailyStepTotals), na.rm = TRUE)
+  medianSteps <- median(as.numeric(dailyStepTotals), na.rm = TRUE)
+```
+### The mean total number of steps taken per day is `r meanSteps`
 ## What is the average daily activity pattern?
+```{r}
+  dailyDailyAverageSteps <- data.frame(do.call("rbind",as.list(by(dataHavingStepValues$steps, dataHavingStepValues$interval, computeAverage))))
+```
 
-
+```{r fig.width=7, fig.height=6}
+ plot(dailyDailyAverageSteps[,1],type="l")
+``` 
+```{r}
+ colnames(dailyDailyAverageSteps) <- c("AverageSteps")
+ indexOfMax <- which.max(dailyDailyAverageSteps$AverageSteps) 
+ maxSteps <- dailyDailyAverageSteps[indexOfMax,]
+ timeAtMax <- rownames(dailyDailyAverageSteps)[indexOfMax]
+```
+### The maximum number of steps within a 5 min interval is `r maxSteps` and it occurs at `r timeAtMax` .
 
 ## Imputing missing values
+```{r}
+ numNAs <- dim(data[is.na(data$steps),])[1]
+```
+### The number of days having "NA" for steps values is `r numNAs'.
 
+```{r}
+  dataNew <- data
+  for(i in 1:dim(dataNew)[1]){
+    if(is.na(dataNew[i,]$steps)){
+      interval <- dataNew[i,]$interval
+      avgSteps <- dailyDailyAverageSteps[as.character(interval),]
+      dataNew[i,]$steps <- as.numeric(avgSteps)
+    }
+  }
+  hist(dataNew$steps)
+  meanSteps <- mean(dataNew$steps)
+```
+
+The mean number of steps `r meanSteps`
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+
+  dataNew$weekday <- ifelse( weekdays(as.Date(dataNew$date)) == "Saturday" | weekdays(as.Date(dataNew$date)) == "Sunday","weekend","weekday" )
+
+  dataWeekday <- dataNew[dataNew$weekday == "weekday",]
+  dataWeekend <- dataNew[dataNew$weekday == "weekend",]
+
+  numberOfWeekdays <- dim(dataWeekday)[1]
+  numberOfWeekends <- dim(dataWeekend)[1]
+  computeAverageWeekdays <- function(x){
+    sum(x)/numberOfWeekdays
+  }
+  computeAverageWeekends <- function(x){
+    sum(x)/numberOfWeekends
+  }
+
+  dataWeekdayAvgSteps <- data.frame(do.call("rbind",as.list(by(dataWeekday$steps, dataWeekday$interval, computeAverageWeekdays))))
+  dataWeekendAvgSteps <- data.frame(do.call("rbind",as.list(by(dataWeekend$steps, dataWeekend$interval, computeAverageWeekends))))
+```
+```{r fig.width=7, fig.height=6}
+  plot(dataWeekdayAvgSteps[,1],type="l")
+``` 
+```{r fig.width=7, fig.height=6}
+  plot(dataWeekendAvgSteps[,1],type="l")
+``` 
+
+
